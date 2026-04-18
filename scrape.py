@@ -6,7 +6,7 @@ from telegram import Update
 from telegram.constants import ChatAction
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
-# Replace with your actual token
+
 load_dotenv()
 TOKEN = os.getenv('BOT_TOKEN') or os.getenv('BOT_TOEKN')
 
@@ -41,6 +41,10 @@ def download_tiktok(url):
         'format': 'bestvideo+bestaudio/best',
         'outtmpl': 'downloads/%(id)s.%(ext)s',  # Save in a 'downloads' folder
         'merge_output_format': 'mp4',
+        'quiet': True,
+        'no_warnings': True,
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+        'referer': 'https://www.tiktok.com/',
     }
     
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
