@@ -66,7 +66,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Send the video
         await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.UPLOAD_VIDEO)
         with open(file_path, 'rb') as video:
-            await update.message.reply_video(video=video, caption="Here is your video! 🚀")
+            await update.message.reply_video(video=video, caption="Here is your video! 🚀", read_timeout=120, write_timeout=120)
         
         await status_msg.delete()
 
