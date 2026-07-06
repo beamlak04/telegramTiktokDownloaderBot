@@ -113,10 +113,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 print(f"⚠️ Failed to delete file: {cleanup_error}")
 
 
-async def clear_webhook(app: Application):
-    """Telegram won't deliver updates via polling while a webhook is registered,
-    so make sure none is set before we start polling."""
-    await app.bot.delete_webhook(drop_pending_updates=True)
+async def post_init(application: Application):
+    """Runs inside the same event loop that run_polling() manages, right before
+    polling begins. Telegram won't deliver updates via polling while a webhook
+    is registered, so we clear it here instead of driving a separate loop
+    manually (which can silently deadlock against run_polling())."""
+    await application.bot.delete_webhook(drop_pending_updates=True)
     logger.info("Webhook cleared (if one was set). Ready to poll.")
 
 
@@ -138,16 +140,16 @@ if __name__ == '__main__':
         pool_timeout=120.0      # Time to wait for an available connection slot
     )
 
-    # Build the application using our custom high-timeout client
-    app = Application.builder().token(TOKEN).request(custom_request).build()
+    # Build the application using our custom high-timeout client.
+    # post_init runs once, inside run_polling()'s own event loop, right before
+    # polling starts - this avoids the event-loop conflict/hang you get from
+    # manually calling asyncio.get_event_loop().run_until_complete() beforehand.
+    app = Application.builder().token(TOKEN).request(custom_request).post_init(post_init).build()
 
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("ping", ping_command))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-
-    # Make sure no webhook is registered before we start polling
-    asyncio.get_event_loop().run_until_complete(clear_webhook(app))
 
     # Retry infinitely if the data center network drops instead of crashing out
     app.run_polling(
