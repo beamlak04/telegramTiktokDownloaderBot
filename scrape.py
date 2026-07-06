@@ -92,14 +92,28 @@ if __name__ == '__main__':
     threading.Thread(target=run_health_check, daemon=True).start()
 
     print("Bot is running...")
+    
+    # --- ULTRA-RESILIENT DATA CENTER NETWORK CONFIGURATION ---
+    # We expand the pool size and give the network maximum breathing room
     custom_request = HTTPXRequest(
-        connect_timeout=120.0, 
-        read_timeout=120.0,
-        write_timeout=120.0
+        connect_timeout=60.0,  # 60 seconds to establish the initial handshake
+        read_timeout=60.0,     # 60 seconds to read data streams
+        write_timeout=60.0,    # 60 seconds to write data streams
+        pool_timeout=60.0      # Time to wait for an available connection slot
     )
-    app = Application.builder().token(TOKEN).build()
+    
+    # Build the application using our custom high-timeout client
+    app = Application.builder().token(TOKEN).request(custom_request).build()
+    
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("ping", ping_command))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    app.run_polling()
+    
+    # Tell the polling loop to retry infinitely if the data center network drops
+    # instead of letting the script crash out completely.
+    app.run_polling(
+        bootstrap_retries=-1,   # Keep retrying startup handshakes infinitely
+        read_timeout=60,        # Keep polling loops open longer
+        timeout=60
+    )
