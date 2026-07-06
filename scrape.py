@@ -91,6 +91,11 @@ if __name__ == '__main__':
     threading.Thread(target=run_health_check, daemon=True).start()
 
     print("Bot is running...")
+    custom_request = HTTPXRequest(
+        connect_timeout=120.0, 
+        read_timeout=120.0,
+        write_timeout=120.0
+    )
     app = Application.builder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("help", help_command))
