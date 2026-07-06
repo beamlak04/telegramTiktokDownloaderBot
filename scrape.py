@@ -12,17 +12,26 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 load_dotenv()
 TOKEN = os.getenv('BOT_TOKEN')
 
-# --- HEALTH CHECK SERVER FOR HOSTING ---
+# --- CLEAN, DECOUPLED HEALTH CHECK SERVER ---
 def run_health_check():
-    """A simple server to satisfy Render/Koyeb health checks."""
-    # Read the environment port as a string first, falling back safely to "8080"
-    port_str = os.getenv("PORT", "8080").strip()
-    port = int(port_str)
+    """A simple server running in a dedicated background thread to handle health checks."""
+    port = int(os.getenv("PORT", "8080").strip())
     
-    # Binding to '0.0.0.0' allows external health-check pings to hit the app
-    server = HTTPServer(('0.0.0.0', port), SimpleHTTPRequestHandler)
-    print(f"Health check server running on port {port}...")
+    # We use a custom, minimal handler so it responds instantly to Hugging Face
+    from http.server import BaseHTTPRequestHandler
+    class MinimalHandler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.send_header("Content-type", "text/plain")
+            self.end_headers()
+            self.wfile.write(b"Bot is active")
+            
+        def log_message(self, format, *args):
+            return # Quiet down the logs so they don't spam your screen
+
+    server = HTTPServer(('0.0.0.0', port), MinimalHandler)
     server.serve_forever()
+
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Hi! Send me a TikTok link and I will download the video for you.")
@@ -89,7 +98,11 @@ if __name__ == '__main__':
         os.makedirs('downloads')
 
     # Start the dummy health-check web server in a background thread
-    threading.Thread(target=run_health_check, daemon=True).start()
+    health_thread = threading.Thread(target=run_health_check, daemon=True)
+    health_thread.start()
+    print("✅ Background health check listener successfully initiated.")
+    # threading.Thread(target=run_health_check, daemon=True).start()
+    print("🚀 Starting Telegram Bot polling loop...")
 
     print("Bot is running...")
     
