@@ -96,10 +96,10 @@ if __name__ == '__main__':
     # --- ULTRA-RESILIENT DATA CENTER NETWORK CONFIGURATION ---
     # We expand the pool size and give the network maximum breathing room
     custom_request = HTTPXRequest(
-        connect_timeout=60.0,  # 60 seconds to establish the initial handshake
-        read_timeout=60.0,     # 60 seconds to read data streams
-        write_timeout=60.0,    # 60 seconds to write data streams
-        pool_timeout=60.0      # Time to wait for an available connection slot
+        connect_timeout=120.0,  # 120 seconds to establish the initial handshake
+        read_timeout=120.0,     # 120 seconds to read data streams
+        write_timeout=120.0,    # 120 seconds to write data streams
+        pool_timeout=120.0      # Time to wait for an available connection slot
     )
     
     # Build the application using our custom high-timeout client
@@ -114,6 +114,6 @@ if __name__ == '__main__':
     # instead of letting the script crash out completely.
     app.run_polling(
         bootstrap_retries=-1,   # Keep retrying startup handshakes infinitely
-        read_timeout=60,        # Keep polling loops open longer
-        timeout=60
+        read_timeout=120,        # Keep polling loops open longer
+        timeout=120
     )
