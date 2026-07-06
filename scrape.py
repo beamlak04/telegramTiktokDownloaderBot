@@ -22,6 +22,20 @@ logger = logging.getLogger(__name__)
 
 print(f"Token loaded: {'YES' if TOKEN else 'NO - MISSING'}")
 
+# --- QUICK NETWORK SANITY CHECK ---
+# If the container can't reach Telegram's servers at all, everything below
+# will just hang silently for up to `connect_timeout` seconds. Fail fast and
+# loud here instead, so it's obvious in the logs within a few seconds.
+def check_telegram_connectivity():
+    import httpx
+    try:
+        resp = httpx.get("https://api.telegram.org", timeout=10.0)
+        logger.info(f"✅ Network check: reached api.telegram.org (status {resp.status_code})")
+        return True
+    except Exception as e:
+        logger.error(f"❌ Network check FAILED: could not reach api.telegram.org -> {e}")
+        return False
+
 
 # --- CLEAN, DECOUPLED HEALTH CHECK SERVER ---
 def run_health_check():
@@ -130,14 +144,20 @@ if __name__ == '__main__':
     health_thread = threading.Thread(target=run_health_check, daemon=True)
     health_thread.start()
     logger.info("✅ Background health check listener successfully initiated.")
+
+    # Run the network sanity check before doing anything else
+    check_telegram_connectivity()
+
     logger.info("🚀 Starting Telegram Bot polling loop...")
 
-    # --- ULTRA-RESILIENT DATA CENTER NETWORK CONFIGURATION ---
+    # --- NETWORK CONFIGURATION ---
+    # Timeouts kept reasonably short (not 120s) so a real connectivity problem
+    # raises a visible error within ~20s instead of looking like a silent hang.
     custom_request = HTTPXRequest(
-        connect_timeout=120.0,  # 120 seconds to establish the initial handshake
-        read_timeout=120.0,     # 120 seconds to read data streams
-        write_timeout=120.0,    # 120 seconds to write data streams
-        pool_timeout=120.0      # Time to wait for an available connection slot
+        connect_timeout=20.0,
+        read_timeout=20.0,
+        write_timeout=20.0,
+        pool_timeout=20.0
     )
 
     # Build the application using our custom high-timeout client.
