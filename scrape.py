@@ -49,23 +49,39 @@ def download_tiktok(url):
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     url = update.message.text
+    
     if "tiktok.com" not in url:
         await update.message.reply_text("Please send a valid TikTok link!")
         return
 
     status_msg = await update.message.reply_text("⏳ Processing video... please wait.")
+    file_path = None  # Track the file path so we can clean it up later
+
     try:
         await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
+        
+        # Run download in a separate thread to keep bot responsive
         file_path = await asyncio.to_thread(download_tiktok, url)
         
+        # Send the video
         await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.UPLOAD_VIDEO)
         with open(file_path, 'rb') as video:
             await update.message.reply_video(video=video, caption="Here is your video! 🚀")
         
-        os.remove(file_path)
         await status_msg.delete()
+
     except Exception as e:
         await update.message.reply_text(f"❌ Error: {str(e)}")
+        
+    finally:
+        # --- GUARANTEED CLEANUP ---
+        # This block ALWAYS runs, even if the try block threw an exception midway.
+        if file_path and os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+                print(f"🧹 Successfully cleaned up and removed: {file_path}")
+            except Exception as cleanup_error:
+                print(f"⚠️ Failed to delete file: {cleanup_error}")
 
 if __name__ == '__main__':
     if not os.path.exists('downloads'):
