@@ -6,6 +6,7 @@ from http.server import SimpleHTTPRequestHandler, HTTPServer
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.constants import ChatAction
+from telegram.request import HTTPXRequest
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
 load_dotenv()
