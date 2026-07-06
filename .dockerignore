@@ -3,3 +3,10 @@
 .git
 .gitignore
 *.md
+.venv
+venv
+__pycache__
+*.pyc
+downloads/
+videos/
+*.log

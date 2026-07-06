@@ -1,3 +1,38 @@
+# Project Structure
+
+```
+tiktok/
+├── .git/                      # Git repository
+├── .venv/                     # Python virtual environment
+├── .dockerignore              # Docker build exclusions
+├── .env                       # Environment variables (not committed)
+├── .gitignore                 # Git ignore patterns
+├── Dockerfile                 # Docker container configuration
+├── PROJECT_STRUCTURE.md       # This file
+├── README.md                  # Project documentation
+├── requirements.txt           # Python dependencies
+├── scrape.py                  # Main bot application
+├── downloads/                 # Temporary downloaded videos
+└── videos/                    # Optional local output folder
+```
+
+## File Descriptions
+
+- **scrape.py** - Main Telegram bot entry point with download handlers
+- **requirements.txt** - Python package dependencies
+- **Dockerfile** - Container configuration for deployment
+- **.dockerignore** - Files excluded from Docker build
+- **.gitignore** - Files excluded from Git tracking
+- **.env** - Environment variables (BOT_TOKEN, PORT)
+- **downloads/** - Temporary storage for downloaded TikTok videos
+- **videos/** - Optional local output folder for videos
+- **README.md** - Project documentation and setup instructions
+
+## Complete Source Code
+
+### scrape.py
+
+```python
 import os
 import asyncio
 import yt_dlp
@@ -14,11 +49,7 @@ TOKEN = os.getenv('BOT_TOKEN')
 # --- HEALTH CHECK SERVER FOR HOSTING ---
 def run_health_check():
     """A simple server to satisfy Render/Koyeb health checks."""
-    # Read the environment port as a string first, falling back safely to "8080"
-    port_str = os.getenv("PORT", "8080").strip()
-    port = int(port_str)
-    
-    # Binding to '0.0.0.0' allows external health-check pings to hit the app
+    port = int(os.getenv("PORT", 8080))
     server = HTTPServer(('0.0.0.0', port), SimpleHTTPRequestHandler)
     print(f"Health check server running on port {port}...")
     server.serve_forever()
@@ -81,3 +112,140 @@ if __name__ == '__main__':
     app.add_handler(CommandHandler("ping", ping_command))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.run_polling()
+```
+
+### requirements.txt
+
+```
+anyio==4.13.0
+certifi==2026.2.25
+h11==0.16.0
+httpcore==1.0.9
+httpx==0.28.1
+idna==3.11
+python-dotenv==1.2.2
+python-telegram-bot==22.7
+typing_extensions==4.15.0
+yt-dlp==2026.3.17
+```
+
+### Dockerfile
+
+```
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies (including ffmpeg for media merging)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY scrape.py .
+
+# Create downloads directory
+RUN mkdir -p downloads
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+
+# Expose port (Koyeb and Render will look for traffic here)
+EXPOSE 8080
+
+# Run the bot
+CMD ["python", "scrape.py"]
+```
+
+### .dockerignore
+
+```
+.env
+.env.*
+.git
+.gitignore
+*.md
+.venv
+venv
+__pycache__
+*.pyc
+downloads/
+videos/
+*.log
+```
+
+### .gitignore
+
+```
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Logs
+*.log
+
+# Unit test / coverage reports
+.coverage
+.coverage.*
+.pytest_cache/
+.hypothesis/
+.tox/
+.nox/
+htmlcov/
+
+# Type checkers / linters
+.mypy_cache/
+.pyre/
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environments
+.env
+.env.*
+.venv/
+venv/
+env/
+ENV/
+
+# IDEs / editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Project-generated media/output
+videos/
+```
