@@ -114,6 +114,5 @@ if __name__ == '__main__':
     # instead of letting the script crash out completely.
     app.run_polling(
         bootstrap_retries=-1,   # Keep retrying startup handshakes infinitely
-        read_timeout=120,        # Keep polling loops open longer
         timeout=120
     )
